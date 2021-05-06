@@ -1273,3 +1273,11 @@ func (s *cScreen) EventQ() chan Event {
 func (s *cScreen) StopQ() <-chan struct{} {
 	return s.stopQ
 }
+
+func (s *cScreen) GetClipboard(string) ([]byte, error) {
+	return []byte{}, errors.New("not supported")
+}
+
+func (s *cScreen) SetClipboard(string, string) error {
+	return errors.New("not supported")
+}

@@ -19,9 +19,10 @@ package tcell
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -114,59 +115,65 @@ type tKeyCode struct {
 
 // tScreen represents a screen backed by a terminfo implementation.
 type tScreen struct {
-	ti           *terminfo.Terminfo
-	tty          Tty
-	h            int
-	w            int
-	fini         bool
-	cells        CellBuffer
-	buffering    bool // true if we are collecting writes to buf instead of sending directly to out
-	buf          bytes.Buffer
-	curstyle     Style
-	style        Style
-	resizeQ      chan bool
-	quit         chan struct{}
-	keyexist     map[Key]bool
-	keycodes     map[string]*tKeyCode
-	keychan      chan []byte
-	keytimer     *time.Timer
-	keyexpire    time.Time
-	cx           int
-	cy           int
-	mouse        []byte
-	clear        bool
-	cursorx      int
-	cursory      int
-	acs          map[rune]string
-	charset      string
-	encoder      transform.Transformer
-	decoder      transform.Transformer
-	fallback     map[rune]string
-	colors       map[Color]Color
-	palette      []Color
-	truecolor    bool
-	escaped      bool
-	buttondn     bool
-	finiOnce     sync.Once
-	enablePaste  string
-	disablePaste string
-	enterUrl     string
-	exitUrl      string
-	setWinSize   string
-	enableFocus  string
-	disableFocus string
-	cursorStyles map[CursorStyle]string
-	cursorStyle  CursorStyle
-	pasteStart   string
-	pasteEnd     string
-	saved        *term.State
-	stopQ        chan struct{}
-	eventQ       chan Event
-	running      bool
-	wg           sync.WaitGroup
-	mouseFlags   MouseFlags
-	pasteEnabled bool
-	focusEnabled bool
+	ti              *terminfo.Terminfo
+	tty             Tty
+	h               int
+	w               int
+	fini            bool
+	cells           CellBuffer
+	buffering       bool // true if we are collecting writes to buf instead of sending directly to out
+	buf             bytes.Buffer
+	curstyle        Style
+	style           Style
+	resizeQ         chan bool
+	quit            chan struct{}
+	keyexist        map[Key]bool
+	keycodes        map[string]*tKeyCode
+	keychan         chan []byte
+	keytimer        *time.Timer
+	keyexpire       time.Time
+	cx              int
+	cy              int
+	mouse           []byte
+	clear           bool
+	cursorx         int
+	cursory         int
+	acs             map[rune]string
+	charset         string
+	encoder         transform.Transformer
+	decoder         transform.Transformer
+	fallback        map[rune]string
+	colors          map[Color]Color
+	palette         []Color
+	truecolor       bool
+	escaped         bool
+	buttondn        bool
+	finiOnce        sync.Once
+	enablePaste     string
+	disablePaste    string
+	enterUrl        string
+	exitUrl         string
+	setWinSize      string
+	enableFocus     string
+	disableFocus    string
+	cursorStyles    map[CursorStyle]string
+	cursorStyle     CursorStyle
+	pasteStart      string
+	pasteEnd        string
+	pasteSet        string
+	pasteGet        string
+	pasteClear      string
+	pasteOSC52Start string
+	pasteOSC52End   string
+	osc52           chan []byte
+	saved           *term.State
+	stopQ           chan struct{}
+	eventQ          chan Event
+	running         bool
+	wg              sync.WaitGroup
+	mouseFlags      MouseFlags
+	pasteEnabled    bool
+	focusEnabled    bool
 
 	sync.Mutex
 }
@@ -177,6 +184,7 @@ func (t *tScreen) Init() error {
 	}
 
 	t.keychan = make(chan []byte, 10)
+	t.osc52 = make(chan []byte)
 	t.keytimer = time.NewTimer(time.Millisecond * 50)
 	t.charset = "UTF-8"
 
@@ -347,6 +355,14 @@ func (t *tScreen) prepareBracketedPaste() {
 		t.pasteStart = "\x1b[200~"
 		t.pasteEnd = "\x1b[201~"
 	}
+
+	// OSC52 paste reporting.
+	t.pasteSet = "\x1b]52;%c;%s\x1b\\"
+	t.pasteGet = "\x1b]52;%c;?\x1b\\"
+	t.pasteClear = "\x1b]52;%c;!\x1b\\"
+
+	t.pasteOSC52Start = "\x1b]52;"
+	t.pasteOSC52End = "\x1b\\"
 }
 
 func (t *tScreen) prepareExtendedOSC() {
@@ -1507,12 +1523,46 @@ func (t *tScreen) parseRune(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
 	return true, false
 }
 
+func (t *tScreen) parseOSC52Paste(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
+	str := buf.String()
+
+	prefixLen := len(t.pasteOSC52Start) + 2
+	if strings.HasPrefix(str, t.pasteOSC52Start) || strings.HasPrefix(t.pasteOSC52Start, str) {
+		idx := strings.Index(str, t.pasteOSC52End)
+		if len(str) > prefixLen && idx != -1 {
+			// OSC52 paste has ended
+			payload := buf.Next(prefixLen + idx)[prefixLen:]
+			buf.Next(len(t.pasteOSC52End))
+			data := make([]byte, len(payload))
+			n, err := base64.StdEncoding.Decode(data, payload)
+			data = data[:n]
+
+			if err != nil {
+				// error must be something else...?
+				return false, false
+			}
+
+			select {
+			case t.osc52 <- data:
+			case <-time.After(50 * time.Millisecond):
+				// If we can't send after 50ms then this was somehow an unprompted paste, and
+				// we can just register it as a paste event.
+				*evs = append(*evs, NewEventPaste(string(data)))
+			}
+			return true, true
+		}
+		// More still coming
+		return true, false
+	}
+
+	return false, false
+}
+
 func (t *tScreen) parseBracketedPaste(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
 	// Replace all carriage returns with newlines
 	str := strings.Replace(buf.String(), "\r", "\n", -1)
 	if strings.HasPrefix(str, t.pasteStart) || strings.HasPrefix(t.pasteStart, str) {
 		idx := strings.Index(str, t.pasteEnd)
-		log.Println(idx)
 		if idx != -1 && idx >= len(t.pasteStart) {
 			// The bracketed paste has ended
 			// Strip out the start and end sequences
@@ -1557,6 +1607,12 @@ func (t *tScreen) collectEventsFromInput(buf *bytes.Buffer, expire bool) []Event
 		}
 
 		partials := 0
+
+		if part, comp := t.parseOSC52Paste(buf, &res); comp {
+			continue
+		} else if part {
+			partials++
+		}
 
 		if part, comp := t.parseBracketedPaste(buf, &res); comp {
 			continue
@@ -1923,4 +1979,51 @@ func (t *tScreen) EventQ() chan Event {
 
 func (t *tScreen) GetCells() *CellBuffer {
 	return &t.cells
+}
+
+func (t *tScreen) GetClipboard(register string) ([]byte, error) {
+	if len(register) <= 0 {
+		return []byte{}, errors.New("no register provided")
+	}
+
+	r := register[0]
+
+	if r != 'c' && r != 'p' {
+		return []byte{}, errors.New("invalid register")
+	}
+
+	t.TPuts(fmt.Sprintf(t.pasteGet, r))
+
+	select {
+	case text := <-t.osc52:
+		return text, nil
+	case <-time.After(200 * time.Millisecond):
+		return []byte{}, errors.New("no clipboard received from terminal")
+	}
+}
+
+func (t *tScreen) SetClipboard(text, register string) error {
+	if len(register) <= 0 {
+		return errors.New("no register provided")
+	}
+
+	r := register[0]
+
+	if r != 'c' && r != 'p' {
+		return errors.New("invalid register")
+	}
+
+	t.TPuts(fmt.Sprintf(t.pasteClear, r))
+
+	var err error = nil
+	// Maximum paste length for OSC 52
+	if len(text) >= 74994 {
+		err = errors.New("text truncated: exceeds 74994 bytes")
+	}
+
+	str := base64.StdEncoding.EncodeToString([]byte(text))
+
+	t.TPuts(fmt.Sprintf(t.pasteSet, r, str))
+
+	return err
 }
