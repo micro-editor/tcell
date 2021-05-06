@@ -17,7 +17,6 @@
 package tcell
 
 import (
-	"os"
 	"syscall"
 
 	"golang.org/x/sys/unix"
