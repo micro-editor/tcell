@@ -1267,3 +1267,10 @@ func (s *cScreen) Suspend() error {
 func (s *cScreen) Resume() error {
 	return s.engage()
 }
+
+func (s *cScreen) GetClipboard(string) ([]byte, error) {
+	return []byte{}, errors.New("not supported")
+}
+func (s *cScreen) SetClipboard(string, string) error {
+	return errors.New("not supported")
+}

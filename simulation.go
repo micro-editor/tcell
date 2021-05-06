@@ -15,6 +15,7 @@
 package tcell
 
 import (
+	"errors"
 	"sync"
 	"unicode/utf8"
 
@@ -551,4 +552,11 @@ func (s *simscreen) Suspend() error {
 
 func (s *simscreen) Resume() error {
 	return nil
+}
+
+func (s *simscreen) GetClipboard(string) ([]byte, error) {
+	return []byte{}, errors.New("not supported")
+}
+func (s *simscreen) SetClipboard(string, string) error {
+	return errors.New("not supported")
 }
