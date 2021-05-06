@@ -18,31 +18,23 @@ import (
 	"time"
 )
 
-// EventPaste is used to mark the start and end of a bracketed paste.
-// An event with .Start() true will be sent to mark the start.
-// Then a number of keys will be sent to indicate that the content
-// is pasted in.  At the end, an event with .Start() false will be sent.
+// EventPaste is used to store the contents of a bracketed paste.
 type EventPaste struct {
-	start bool
-	t     time.Time
+	text string
+	t    time.Time
 }
 
-// When returns the time when this EventMouse was created.
+// When returns the time when this EventPaste was created.
 func (ev *EventPaste) When() time.Time {
 	return ev.t
 }
 
-// Start returns true if this is the start of a paste.
-func (ev *EventPaste) Start() bool {
-	return ev.start
-}
-
-// End returns true if this is the end of a paste.
-func (ev *EventPaste) End() bool {
-	return !ev.start
+// Text returns the pasted text.
+func (ev *EventPaste) Text() string {
+	return ev.text
 }
 
 // NewEventPaste returns a new EventPaste.
-func NewEventPaste(start bool) *EventPaste {
-	return &EventPaste{t: time.Now(), start: start}
+func NewEventPaste(text string) *EventPaste {
+	return &EventPaste{t: time.Now(), text: text}
 }
