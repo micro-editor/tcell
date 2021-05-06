@@ -1700,10 +1700,7 @@ func (t *tScreen) inputLoop(stopQ chan struct{}) {
 		default:
 		}
 
-		err = t.in.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
-		if err != nil {
-			panic(err)
-		}
+		t.in.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
 
 		chunk := make([]byte, 128)
 		n, e := t.tty.Read(chunk)
