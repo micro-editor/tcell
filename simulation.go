@@ -15,6 +15,7 @@
 package tcell
 
 import (
+	"errors"
 	"sync"
 	"unicode/utf8"
 
@@ -494,4 +495,11 @@ func (s *simscreen) EventQ() chan Event {
 
 func (s *simscreen) StopQ() <-chan struct{} {
 	return s.quit
+}
+
+func (s *simscreen) GetClipboard(string) ([]byte, error) {
+	return []byte{}, errors.New("not supported")
+}
+func (s *simscreen) SetClipboard(string, []byte) error {
+	return errors.New("not supported")
 }
