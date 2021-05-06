@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -156,6 +157,8 @@ type tScreen struct {
 	disableFocus string
 	cursorStyles map[CursorStyle]string
 	cursorStyle  CursorStyle
+	pasteStart   string
+	pasteEnd     string
 	saved        *term.State
 	stopQ        chan struct{}
 	eventQ       chan Event
@@ -336,13 +339,13 @@ func (t *tScreen) prepareBracketedPaste() {
 	if t.ti.EnablePaste != "" {
 		t.enablePaste = t.ti.EnablePaste
 		t.disablePaste = t.ti.DisablePaste
-		t.prepareKey(keyPasteStart, t.ti.PasteStart)
-		t.prepareKey(keyPasteEnd, t.ti.PasteEnd)
+		t.pasteStart = t.ti.PasteStart
+		t.pasteEnd = t.ti.PasteEnd
 	} else if t.ti.Mouse != "" {
 		t.enablePaste = "\x1b[?2004h"
 		t.disablePaste = "\x1b[?2004l"
-		t.prepareKey(keyPasteStart, "\x1b[200~")
-		t.prepareKey(keyPasteEnd, "\x1b[201~")
+		t.pasteStart = "\x1b[200~"
+		t.pasteEnd = "\x1b[201~"
 	}
 }
 
@@ -545,8 +548,6 @@ func (t *tScreen) prepareKeys() {
 		t.prepareKey(KeyHome, "\x1bOH")
 	}
 
-	t.prepareKey(keyPasteStart, ti.PasteStart)
-	t.prepareKey(keyPasteEnd, ti.PasteEnd)
 	t.prepareXtermModifiers()
 	t.prepareBracketedPaste()
 	t.prepareCursorStyles()
@@ -1446,14 +1447,7 @@ func (t *tScreen) parseFunctionKey(buf *bytes.Buffer, evs *[]Event) (bool, bool)
 				mod |= ModAlt
 				t.escaped = false
 			}
-			switch k.key {
-			case keyPasteStart:
-				*evs = append(*evs, NewEventPaste(true))
-			case keyPasteEnd:
-				*evs = append(*evs, NewEventPaste(false))
-			default:
-				*evs = append(*evs, NewEventKey(k.key, r, mod))
-			}
+			*evs = append(*evs, NewEventKey(k.key, r, mod))
 			for i := 0; i < len(esc); i++ {
 				_, _ = buf.ReadByte()
 			}
@@ -1513,6 +1507,26 @@ func (t *tScreen) parseRune(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
 	return true, false
 }
 
+func (t *tScreen) parseBracketedPaste(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
+	// Replace all carriage returns with newlines
+	str := strings.Replace(buf.String(), "\r", "\n", -1)
+	if strings.HasPrefix(str, t.pasteStart) || strings.HasPrefix(t.pasteStart, str) {
+		idx := strings.Index(str, t.pasteEnd)
+		log.Println(idx)
+		if idx != -1 && idx >= len(t.pasteStart) {
+			// The bracketed paste has ended
+			// Strip out the start and end sequences
+			buf.Next(idx + len(t.pasteEnd))
+			text := str[len(t.pasteStart):idx]
+			*evs = append(*evs, NewEventPaste(text))
+			return true, true
+		}
+		// There is still more coming
+		return true, false
+	}
+	return false, false
+}
+
 func (t *tScreen) scanInput(buf *bytes.Buffer, expire bool) {
 	evs := t.collectEventsFromInput(buf, expire)
 
@@ -1543,6 +1557,12 @@ func (t *tScreen) collectEventsFromInput(buf *bytes.Buffer, expire bool) []Event
 		}
 
 		partials := 0
+
+		if part, comp := t.parseBracketedPaste(buf, &res); comp {
+			continue
+		} else if part {
+			partials++
+		}
 
 		if part, comp := t.parseRune(buf, &res); comp {
 			continue
