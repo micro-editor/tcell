@@ -1531,23 +1531,21 @@ func (t *tScreen) parseOSC52Paste(buf *bytes.Buffer, evs *[]Event) (bool, bool) 
 		idx := strings.Index(str, t.pasteOSC52End)
 		if len(str) > prefixLen && idx != -1 {
 			// OSC52 paste has ended
-			payload := buf.Next(prefixLen + idx)[prefixLen:]
+			payload := buf.Next(idx)[prefixLen:]
 			buf.Next(len(t.pasteOSC52End))
 			data := make([]byte, len(payload))
 			n, err := base64.StdEncoding.Decode(data, payload)
 			data = data[:n]
 
 			if err != nil {
-				// error must be something else...?
-				return false, false
+				// discard the paste since it is invalid
+				return true, true
 			}
 
 			select {
 			case t.osc52 <- data:
 			case <-time.After(50 * time.Millisecond):
-				// If we can't send after 50ms then this was somehow an unprompted paste, and
-				// we can just register it as a paste event.
-				*evs = append(*evs, NewEventPaste(string(data)))
+				// If we can't send after 50ms then just discard.
 			}
 			return true, true
 		}
