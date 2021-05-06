@@ -213,6 +213,15 @@ type Screen interface {
 	// Resume resumes after Suspend().
 	Resume() error
 
+	// GetClipboard sends an OSC 52 escape sequence to the tty requesting
+	// that the clipboard contents be sent in base64 encoding.
+	GetClipboard(string) ([]byte, error)
+
+	// SetClipboard sends an OSC 52 escape sequence to the tty with a base64
+	// encoded string requesting that the string be decoded and placed into
+	// the system clipboard.
+	SetClipboard(string, string) error
+
 	// Beep attempts to sound an OS-dependent audible alert and returns an error
 	// when unsuccessful.
 	Beep() error
