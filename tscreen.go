@@ -1743,19 +1743,12 @@ func (t *tScreen) mainLoop(stopQ chan struct{}) {
 
 func (t *tScreen) inputLoop(stopQ chan struct{}) {
 	defer t.wg.Done()
-	var (
-		n   int
-		err error
-	)
 	for {
 		select {
 		case <-stopQ:
 			return
 		default:
 		}
-
-		t.in.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
-
 		chunk := make([]byte, 128)
 		n, e := t.tty.Read(chunk)
 		switch e {
