@@ -33,10 +33,10 @@ import (
 	"golang.org/x/term"
 	"golang.org/x/text/transform"
 
-	"github.com/gdamore/tcell/v2/terminfo"
+	"github.com/micro-editor/tcell/v2/terminfo"
 
 	// import the stock terminals
-	_ "github.com/gdamore/tcell/v2/terminfo/base"
+	_ "github.com/micro-editor/tcell/v2/terminfo/base"
 )
 
 // NewTerminfoScreen returns a Screen that uses the stock TTY interface

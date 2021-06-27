@@ -172,7 +172,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/micro-editor/tcell/v2"
 )
 
 func drawText(s tcell.Screen, x1, y1, x2, y2 int, style tcell.Style, text string) {

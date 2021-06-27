@@ -27,7 +27,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gdamore/tcell/v2/terminfo"
+	"github.com/micro-editor/tcell/v2/terminfo"
 	xoterminfo "github.com/xo/terminfo"
 )
 
