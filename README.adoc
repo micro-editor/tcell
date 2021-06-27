@@ -1,13 +1,13 @@
 = tcell
 
 
-image:https://img.shields.io/travis/gdamore/tcell.svg?label=linux[Linux Status,link="https://travis-ci.org/gdamore/tcell"]
-image:https://img.shields.io/appveyor/ci/gdamore/tcell.svg?label=windows[Windows Status,link="https://ci.appveyor.com/project/gdamore/tcell"]
-image:https://img.shields.io/badge/license-APACHE2-blue.svg[Apache License,link="https://github.com/gdamore/tcell/blob/master/LICENSE"]
-image:https://img.shields.io/badge/godoc-reference-blue.svg[GoDoc,link="https://godoc.org/github.com/gdamore/tcell"]
-image:https://goreportcard.com/badge/gdamore/tcell[Go Report Card,link="http://goreportcard.com/report/gdamore/tcell"]
+image:https://img.shields.io/travis/micro-editor/tcell.svg?label=linux[Linux Status,link="https://travis-ci.org/micro-editor/tcell"]
+image:https://img.shields.io/appveyor/ci/micro-editor/tcell.svg?label=windows[Windows Status,link="https://ci.appveyor.com/project/micro-editor/tcell"]
+image:https://img.shields.io/badge/license-APACHE2-blue.svg[Apache License,link="https://github.com/micro-editor/tcell/blob/master/LICENSE"]
+image:https://img.shields.io/badge/godoc-reference-blue.svg[GoDoc,link="https://godoc.org/github.com/micro-editor/tcell"]
+image:https://goreportcard.com/badge/micro-editor/tcell[Go Report Card,link="http://goreportcard.com/report/micro-editor/tcell"]
 image:https://img.shields.io/discord/639503822733180969?label=discord[Discord,link="https://discord.gg/urTTxDN"]
-image:https://codecov.io/gh/gdamore/tcell/branch/master/graph/badge.svg[codecov,link="https://codecov.io/gh/gdamore/tcell"]
+image:https://codecov.io/gh/micro-editor/tcell/branch/master/graph/badge.svg[codecov,link="https://codecov.io/gh/micro-editor/tcell"]
 
 [cols="2",grid="none"]
 |===
@@ -18,7 +18,7 @@ image::logos/tcell.png[float="right"]
 |===
 
 NOTE: This is version 2 of _Tcell_.  There are breaking changes relative to version 1.
-Version 1.x remains available using the import `github.com/gdamore/tcell`.
+Version 1.x remains available using the import `github.com/micro-editor/tcell`.
 
 == Examples
 
@@ -125,7 +125,7 @@ fired up with cmd.exe or PowerShell works fine however.)
 == _Termbox_ Compatibility
 
 A compatibility layer for _termbox_ is provided in the `compat` directory.
-To use it, try importing `github.com/gdamore/tcell/termbox` instead.
+To use it, try importing `github.com/micro-editor/tcell/termbox` instead.
 Most _termbox-go_ programs will probably work without further modification.
 
 == Working With Unicode

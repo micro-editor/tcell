@@ -17,7 +17,7 @@ package views
 import (
 	"github.com/mattn/go-runewidth"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/micro-editor/tcell/v2"
 )
 
 // Text is a Widget with containing a block of text, which can optionally
