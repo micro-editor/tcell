@@ -1405,7 +1405,7 @@ func (t *tScreen) parseOSC52Paste(buf *bytes.Buffer, evs *[]Event) (bool, bool) 
 	prefixLen := len(t.pasteOSC52Start) + 2
 	if strings.HasPrefix(str, t.pasteOSC52Start) || strings.HasPrefix(t.pasteOSC52Start, str) {
 		idx := strings.Index(str, t.pasteOSC52End)
-		if len(str) > prefixLen && idx != -1 {
+		if idx >= prefixLen {
 			// OSC52 paste has ended
 			payload := buf.Next(idx)[prefixLen:]
 			buf.Next(len(t.pasteOSC52End))
