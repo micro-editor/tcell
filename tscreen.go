@@ -1801,13 +1801,13 @@ func (t *tScreen) finalize() {
 
 func (t *tScreen) GetClipboard(register string) ([]byte, error) {
 	if len(register) <= 0 {
-		return []byte{}, errors.New("no register provided")
+		return nil, errors.New("no register provided")
 	}
 
 	r := register[0]
 
 	if r != 'c' && r != 'p' {
-		return []byte{}, errors.New("invalid register")
+		return nil, errors.New("invalid register")
 	}
 
 	t.TPuts(fmt.Sprintf(t.pasteGet, r))
@@ -1816,20 +1816,20 @@ func (t *tScreen) GetClipboard(register string) ([]byte, error) {
 	case text := <-t.osc52:
 		return text, nil
 	case <-time.After(200 * time.Millisecond):
-		return []byte{}, errors.New("no clipboard received from terminal")
+		return nil, errors.New("no clipboard received from terminal")
 	}
 }
 
-func (t *tScreen) SetClipboard(text, register string) error {
+func (t *tScreen) SetClipboard(register string, text []byte) error {
 	if len(register) <= 0 {
 		return errors.New("no register provided")
 	}
 
-	r := register[0]
-
-	if r != 'c' && r != 'p' {
+	if register != "clipboard" && register != "primary" {
 		return errors.New("invalid register")
 	}
+
+	r := register[0]
 
 	t.TPuts(fmt.Sprintf(t.pasteClear, r))
 
@@ -1839,7 +1839,7 @@ func (t *tScreen) SetClipboard(text, register string) error {
 		err = errors.New("text truncated: exceeds 74994 bytes")
 	}
 
-	str := base64.StdEncoding.EncodeToString([]byte(text))
+	str := base64.StdEncoding.EncodeToString(text)
 
 	t.TPuts(fmt.Sprintf(t.pasteSet, r, str))
 
