@@ -252,7 +252,7 @@ type Screen interface {
 	// SetClipboard sends an OSC 52 escape sequence to the tty with a base64
 	// encoded string requesting that the string be decoded and placed into
 	// the system clipboard.
-	SetClipboard(string, string) error
+	SetClipboard(string, []byte) error
 
 	// Beep attempts to sound an OS-dependent audible alert and returns an error
 	// when unsuccessful.

@@ -500,6 +500,6 @@ func (s *simscreen) StopQ() <-chan struct{} {
 func (s *simscreen) GetClipboard(string) ([]byte, error) {
 	return []byte{}, errors.New("not supported")
 }
-func (s *simscreen) SetClipboard(string, string) error {
+func (s *simscreen) SetClipboard(string, []byte) error {
 	return errors.New("not supported")
 }
