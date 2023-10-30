@@ -1575,6 +1575,19 @@ func (t *tScreen) parseBracketedPaste(buf *bytes.Buffer, evs *[]Event) (bool, bo
 	return false, false
 }
 
+const pasteSz = 64
+
+func (t *tScreen) parsePaste(buf *bytes.Buffer, evs *[]Event) (bool, bool) {
+	idx := bytes.Index(buf.Bytes(), []byte{'\x1b'})
+	if idx == -1 && buf.Len() >= pasteSz || idx >= pasteSz {
+		data, _ := buf.ReadBytes('\x1b')
+		text := strings.Replace(string(data), "\r", "\n", -1)
+		*evs = append(*evs, NewEventPaste(text))
+		return true, true
+	}
+	return false, false
+}
+
 func (t *tScreen) scanInput(buf *bytes.Buffer, expire bool) {
 	evs := t.collectEventsFromInput(buf, expire)
 
@@ -1613,6 +1626,12 @@ func (t *tScreen) collectEventsFromInput(buf *bytes.Buffer, expire bool) []Event
 		}
 
 		if part, comp := t.parseBracketedPaste(buf, &res); comp {
+			continue
+		} else if part {
+			partials++
+		}
+
+		if part, comp := t.parsePaste(buf, &res); comp {
 			continue
 		} else if part {
 			partials++
@@ -1749,7 +1768,7 @@ func (t *tScreen) inputLoop(stopQ chan struct{}) {
 			return
 		default:
 		}
-		chunk := make([]byte, 128)
+		chunk := make([]byte, 2048)
 		n, e := t.tty.Read(chunk)
 		switch e {
 		case nil:
