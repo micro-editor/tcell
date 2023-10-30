@@ -24,11 +24,12 @@ package dynamic
 import (
 	"bytes"
 	"errors"
+	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/micro-editor/tcell/v2/terminfo"
-	xoterminfo "github.com/xo/terminfo"
 )
 
 type termcap struct {
@@ -116,25 +117,90 @@ func unescape(s string) string {
 }
 
 func (tc *termcap) setupterm(name string) error {
-	ti, err := xoterminfo.Load(name)
-	if err != nil {
+	cmd := exec.Command("infocmp", "-1", name)
+	output := &bytes.Buffer{}
+	cmd.Stdout = output
+
+	tc.strs = make(map[string]string)
+	tc.bools = make(map[string]bool)
+	tc.nums = make(map[string]int)
+
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 
-	tc.name = name
-	tc.desc = ""
-	tc.aliases = []string{}
-	tc.bools = ti.BoolCapsShort()
-	tc.nums = ti.NumCapsShort()
-
-	tc.strs = make(map[string]string)
-	strcaps := ti.StringCapsShort()
-	for k, v := range strcaps {
-		tc.strs[k] = string(v)
+	// Now parse the output.
+	// We get comment lines (starting with "#"), followed by
+	// a header line that looks like "<name>|<alias>|...|<desc>"
+	// then capabilities, one per line, starting with a tab and ending
+	// with a comma and newline.
+	lines := strings.Split(output.String(), "\n")
+	for len(lines) > 0 && strings.HasPrefix(lines[0], "#") {
+		lines = lines[1:]
 	}
 
+	// Ditch trailing empty last line
+	if lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
+	header := lines[0]
+	if strings.HasSuffix(header, ",") {
+		header = header[:len(header)-1]
+	}
+	names := strings.Split(header, "|")
+	tc.name = names[0]
+	names = names[1:]
+	if len(names) > 0 {
+		tc.desc = names[len(names)-1]
+		names = names[:len(names)-1]
+	}
+	tc.aliases = names
+	for _, val := range lines[1:] {
+		if (!strings.HasPrefix(val, "\t")) ||
+			(!strings.HasSuffix(val, ",")) {
+			return (errors.New("malformed infocmp: " + val))
+		}
+
+		val = val[1:]
+		val = val[:len(val)-1]
+
+		if k := strings.SplitN(val, "=", 2); len(k) == 2 {
+			tc.strs[k[0]] = unescape(k[1])
+		} else if k := strings.SplitN(val, "#", 2); len(k) == 2 {
+			u, err := strconv.ParseUint(k[1], 0, 0)
+			if err != nil {
+				return (err)
+			}
+			tc.nums[k[0]] = int(u)
+		} else {
+			tc.bools[val] = true
+		}
+	}
 	return nil
 }
+
+// Load terminfo using the xo/terminfo library instead of infocmp
+// Note: it seems like this is broken for the screen application
+// func (tc *termcap) setupterm(name string) error {
+// 	ti, err := xoterminfo.Load(name)
+// 	if err != nil {
+// 		return err
+// 	}
+//
+// 	tc.name = name
+// 	tc.desc = ""
+// 	tc.aliases = []string{}
+// 	tc.bools = ti.BoolCapsShort()
+// 	tc.nums = ti.NumCapsShort()
+//
+// 	tc.strs = make(map[string]string)
+// 	strcaps := ti.StringCapsShort()
+// 	for k, v := range strcaps {
+// 		tc.strs[k] = string(v)
+// 	}
+//
+// 	return nil
+// }
 
 // LoadTerminfo creates a Terminfo by for named terminal by attempting to parse
 // the output from infocmp.  This returns the terminfo entry, a description of
