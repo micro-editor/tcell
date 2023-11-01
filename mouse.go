@@ -64,6 +64,10 @@ func (ev *EventMouse) Position() (int, int) {
 	return ev.x, ev.y
 }
 
+func (ev *EventMouse) SetPosition(x, y int) {
+	ev.x, ev.y = x, y
+}
+
 // NewEventMouse is used to create a new mouse event.  Applications
 // shouldn't need to use this; its mostly for screen implementors.
 func NewEventMouse(x, y int, btn ButtonMask, mod ModMask) *EventMouse {
