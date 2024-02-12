@@ -245,15 +245,6 @@ type Screen interface {
 	// Resume resumes after Suspend().
 	Resume() error
 
-	// GetClipboard sends an OSC 52 escape sequence to the tty requesting
-	// that the clipboard contents be sent in base64 encoding.
-	GetClipboard(string) ([]byte, error)
-
-	// SetClipboard sends an OSC 52 escape sequence to the tty with a base64
-	// encoded string requesting that the string be decoded and placed into
-	// the system clipboard.
-	SetClipboard(string, []byte) error
-
 	// Beep attempts to sound an OS-dependent audible alert and returns an error
 	// when unsuccessful.
 	Beep() error
@@ -266,6 +257,15 @@ type Screen interface {
 	// does not support application-initiated resizing, whereas the legacy terminal does.
 	// Also, some emulators can support this but may have it disabled by default.
 	SetSize(int, int)
+
+	// GetClipboard sends an OSC 52 escape sequence to the tty requesting
+	// that the clipboard contents be sent in base64 encoding.
+	GetClipboard(string) ([]byte, error)
+
+	// SetClipboard sends an OSC 52 escape sequence to the tty with a base64
+	// encoded string requesting that the string be decoded and placed into
+	// the system clipboard.
+	SetClipboard(string, []byte) error
 
 	// LockRegion sets or unsets a lock on a region of cells. A lock on a
 	// cell prevents the cell from being redrawn.
@@ -343,6 +343,8 @@ type screenImpl interface {
 	Resume() error
 	Beep() error
 	SetSize(int, int)
+	GetClipboard(string) ([]byte, error)
+	SetClipboard(string, []byte) error
 	Tty() (Tty, bool)
 
 	// Following methods are not part of the Screen api, but are used for interaction with
