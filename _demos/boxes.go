@@ -25,7 +25,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/gdamore/tcell/v2"
+	"github.com/micro-editor/tcell/v2"
 )
 
 func makebox(s tcell.Screen) {

@@ -4,7 +4,7 @@ A number of changes were made to _Tcell_ for version two, and some of these are 
 
 ### Import Path
 
-The import path for tcell has changed to `github.com/gdamore/tcell/v2` to reflect a new major version.
+The import path for tcell has changed to `github.com/micro-editor/tcell/v2` to reflect a new major version.
 
 ### Style Is Not Numeric
 

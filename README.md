@@ -9,10 +9,10 @@ It was inspired by _termbox_, but includes many additional improvements.
 [![Linux](https://img.shields.io/github/actions/workflow/status/gdamore/tcell/linux.yml?branch=main&logoColor=grey&logo=linux&label=)](https://github.com/gdamore/tcell/actions/workflows/linux.yml)
 [![Windows](https://img.shields.io/github/actions/workflow/status/gdamore/tcell/windows.yml?branch=main&logoColor=grey&logo=windows&label=)](https://github.com/gdamore/tcell/actions/workflows/windows.yml)
 [![Apache License](https://img.shields.io/github/license/gdamore/tcell.svg?logoColor=silver&logo=opensourceinitiative&color=blue&label=)](https://github.com/gdamore/tcell/blob/master/LICENSE)
-[![Docs](https://img.shields.io/badge/godoc-reference-blue.svg?label=&logo=go)](https://pkg.go.dev/github.com/gdamore/tcell/v2)
+[![Docs](https://img.shields.io/badge/godoc-reference-blue.svg?label=&logo=go)](https://pkg.go.dev/github.com/micro-editor/tcell/v2)
 [![Discord](https://img.shields.io/discord/639503822733180969?label=&logo=discord)](https://discord.gg/urTTxDN)
 [![Coverage](https://img.shields.io/codecov/c/github/gdamore/tcell?logoColor=grey&logo=codecov&label=)](https://codecov.io/gh/gdamore/tcell)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gdamore/tcell/v2)](https://goreportcard.com/report/github.com/gdamore/tcell/v2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/micro-editor/tcell/v2)](https://goreportcard.com/report/github.com/micro-editor/tcell/v2)
 
 Please see [here](UKRAINE.md) for an important message for the people of Russia.
 

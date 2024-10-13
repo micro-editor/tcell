@@ -20,7 +20,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gdamore/tcell/v2"
+	"github.com/micro-editor/tcell/v2"
 	"os"
 )
 
