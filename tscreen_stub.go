@@ -1,4 +1,4 @@
-// +build nacl plan9
+// +build nacl plan9 windows
 
 // Copyright 2015 The TCell Authors
 //
@@ -16,7 +16,10 @@
 
 package tcell
 
-// This stub file is for systems that have no termios.
+// On Windows we don't have support for termios.  We probably could, and
+// may should, in a cygwin type environment.  Its not clear how to make
+// this all work nicely with both cygwin and Windows console, so we
+// decline to do so here.
 
 type termiosPrivate struct{}
 

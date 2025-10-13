@@ -1,4 +1,4 @@
-// +build linux
+// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris zos
 
 // Copyright 2019 The TCell Authors
 //
@@ -23,58 +23,23 @@ import (
 	"syscall"
 
 	"golang.org/x/sys/unix"
+	"golang.org/x/term"
 )
-
-type termiosPrivate struct {
-	tio *unix.Termios
-}
 
 func (t *tScreen) termioInit() error {
 	var e error
-	var raw *unix.Termios
-	var tio *unix.Termios
+	var state *term.State
 
-	if t.in, e = os.OpenFile("/dev/tty", os.O_RDONLY, 0); e != nil {
-		goto failed
-	}
-	if t.out, e = os.OpenFile("/dev/tty", os.O_WRONLY, 0); e != nil {
+	if t.in, t.out, e = openTty(); e != nil {
 		goto failed
 	}
 
-	tio, e = unix.IoctlGetTermios(int(t.out.(*os.File).Fd()), unix.TCGETS)
+	state, e = term.MakeRaw(t.fd())
 	if e != nil {
 		goto failed
 	}
 
-	t.tiosp = &termiosPrivate{tio: tio}
-
-	// make a local copy, to make it raw
-	raw = &unix.Termios{
-		Cflag: tio.Cflag,
-		Oflag: tio.Oflag,
-		Iflag: tio.Iflag,
-		Lflag: tio.Lflag,
-		Cc:    tio.Cc,
-	}
-	raw.Iflag &^= (unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP |
-		unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON)
-	raw.Oflag &^= unix.OPOST
-	raw.Lflag &^= (unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG |
-		unix.IEXTEN)
-	raw.Cflag &^= (unix.CSIZE | unix.PARENB)
-	raw.Cflag |= unix.CS8
-
-	// This is setup for blocking reads.  In the past we attempted to
-	// use non-blocking reads, but now a separate input loop and timer
-	// copes with the problems we had on some systems (BSD/Darwin)
-	// where close hung forever.
-	raw.Cc[unix.VMIN] = 1
-	raw.Cc[unix.VTIME] = 0
-
-	e = unix.IoctlSetTermios(int(t.out.(*os.File).Fd()), unix.TCSETS, raw)
-	if e != nil {
-		goto failed
-	}
+	t.saved = state
 
 	signal.Notify(t.sigwinch, syscall.SIGWINCH)
 
@@ -86,10 +51,10 @@ func (t *tScreen) termioInit() error {
 
 failed:
 	if t.in != nil {
-		t.in.(*os.File).Close()
+		closeTty(t.in)
 	}
 	if t.out != nil {
-		t.out.(*os.File).Close()
+		closeTty(t.out)
 	}
 	return e
 }
@@ -100,19 +65,19 @@ func (t *tScreen) termioFini() {
 
 	<-t.indoneq
 
-	if t.out != nil && t.tiosp != nil {
-		unix.IoctlSetTermios(int(t.out.(*os.File).Fd()), unix.TCSETSF, t.tiosp.tio)
-		t.out.(*os.File).Close()
+	if t.out != nil && t.saved != nil {
+		term.Restore(t.fd(), t.saved)
+		closeTty(t.out)
 	}
 
 	if t.in != nil {
-		t.in.(*os.File).Close()
+		closeTty(t.in)
 	}
 }
 
 func (t *tScreen) getWinSize() (int, int, error) {
 
-	wsz, err := unix.IoctlGetWinsize(int(t.out.(*os.File).Fd()), unix.TIOCGWINSZ)
+	wsz, err := unix.IoctlGetWinsize(t.fd(), unix.TIOCGWINSZ)
 	if err != nil {
 		return -1, -1, err
 	}

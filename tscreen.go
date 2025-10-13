@@ -28,6 +28,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"golang.org/x/term"
 	"golang.org/x/text/transform"
 
 	"github.com/micro-editor/tcell/v2/terminfo"
@@ -126,7 +127,6 @@ type tScreen struct {
 	clear     bool
 	cursorx   int
 	cursory   int
-	tiosp     *termiosPrivate
 	wasbtn    bool
 	acs       map[rune]string
 	charset   string
@@ -140,6 +140,7 @@ type tScreen struct {
 	buttondn  bool
 	rawseq    []string
 	finiOnce  sync.Once
+	saved     *term.State
 
 	sync.Mutex
 }
